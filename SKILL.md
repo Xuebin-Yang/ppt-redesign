@@ -43,7 +43,7 @@ description: 当用户提供从 PowerPoint/PPT/PPTX 导出的 PDF（包括长图
 
 ## 工作流 (Workflow)
 
-### Step 0. 更新 skill 并重新读取说明
+### Step 0. 更新检查
 
 每次使用本 skill 时，先运行：
 
@@ -51,15 +51,12 @@ description: 当用户提供从 PowerPoint/PPT/PPTX 导出的 PDF（包括长图
 python3 scripts/update_skill.py
 ```
 
-如果脚本提示已更新，必须重新读取当前目录下最新的 `SKILL.md`，再继续执行后续流程；不要继续沿用更新前已经读入的旧说明。
+安装模式由脚本自动判断：
 
-自动更新只支持通过 Git clone 安装的 skill。如果用户是通过 ZIP 复制安装，或当前目录没有 Git 远端，脚本会停止并提示用以下方式重新安装：
+- 下载版安装（默认）：跳过远端更新检查，直接使用当前本地版本继续。
+- Git clone 安装：每次使用前从远端检查并快进更新；如果未先完成更新检查，后续 PDF 处理脚本会停止。
 
-```bash
-git clone https://github.com/Xuebin-Yang/ppt-redesign.git ~/.codex/skills/ppt-redesign
-```
-
-如果网络不可用、仓库有本地未提交改动，或远端历史无法快进更新，停止并说明原因。不要在未完成更新检查的情况下继续生成，除非用户明确要求使用当前本地版本。
+如果 Git 版脚本提示已更新，必须重新读取当前目录下最新的 `SKILL.md`，再继续执行后续流程；不要继续沿用更新前已经读入的旧说明。若网络不可用、仓库有本地未提交改动，或远端历史无法快进更新，停止并说明原因。
 
 ### Step 1. 环境自检
 
@@ -227,7 +224,7 @@ python3 scripts/prepare_pdf_prompts.py --out ppt-prompts-output --finalize
 ## 何时停止 (Hard Stop Conditions)
 
 - 若用户输入不是 PDF，停止并提示。
-- 若 `scripts/update_skill.py` 无法完成更新检查，停止并说明原因；只有用户明确要求使用当前本地版本时才继续。
+- 若 Git clone 安装版无法完成 `scripts/update_skill.py` 更新检查，停止并说明原因。
 - 若 PDF 渲染失败，先运行 `python3 scripts/check_environment.py`；若仍失败，停止并把脚本给出的依赖安装命令交给用户。
 - 若 Agent 无法看到 `source_pages/` 中的页面截图，必须停止——禁止在缺信息的情况下凭空写提示词。
 - 若提示词里仍残留 `[待补]` `[REPLACE]` `[MISSING]` 等占位符，禁止合批，必须先补齐。
@@ -245,4 +242,4 @@ python3 scripts/prepare_pdf_prompts.py --out ppt-prompts-output --finalize
 - `scripts/check_environment.py`
   - 检查当前机器是否具备直接可用的 PDF 拆分和合成后端。
 - `scripts/update_skill.py`
-  - 在每次使用前从 GitHub 检查并快进更新当前 skill。仅支持 Git clone 安装；ZIP 复制安装无法自动更新。
+  - 下载版安装时跳过更新检查；Git clone 安装时从 GitHub 检查并快进更新当前 skill。

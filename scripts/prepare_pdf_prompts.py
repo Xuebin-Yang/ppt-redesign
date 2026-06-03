@@ -16,6 +16,7 @@ import shutil
 import sys
 from pathlib import Path
 
+from runtime_guard import ensure_update_checked_for_git_install
 from skill_runtime import ensure_pymupdf
 
 BATCH_SIZE = 8
@@ -154,6 +155,8 @@ def finalize(out_dir: Path):
 
 
 if __name__ == "__main__":
+    ensure_update_checked_for_git_install()
+
     parser = argparse.ArgumentParser(description="PPT 提示词重设计工具（仅输出提示词）")
     parser.add_argument("pdf", nargs="?", help="输入 PDF 路径（--finalize 时可省略）")
     parser.add_argument("--out", required=True, help="输出目录")

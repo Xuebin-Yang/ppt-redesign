@@ -4,8 +4,9 @@
 from __future__ import annotations
 
 import subprocess
-import sys
 from pathlib import Path
+
+from runtime_guard import mark_update_checked
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -27,11 +28,8 @@ def fail(message: str, code: int = 1) -> None:
 
 def main() -> None:
     if not (ROOT / ".git").exists():
-        fail(
-            "当前 skill 不是通过 Git 仓库安装，无法自动更新。"
-            "请使用 git clone https://github.com/Xuebin-Yang/ppt-redesign.git "
-            "~/.codex/skills/ppt-redesign 重新安装。"
-        )
+        print("ℹ️  当前为下载版安装，跳过更新检查，继续使用本地版本。")
+        return
 
     dirty = git("status", "--porcelain").stdout.strip()
     if dirty:
@@ -50,6 +48,7 @@ def main() -> None:
     upstream_ref = upstream.stdout.strip()
     remote = git("rev-parse", upstream_ref).stdout.strip()
     if current == remote:
+        mark_update_checked(upstream_ref)
         print("✅ 当前已是最新版。")
         return
 
@@ -62,6 +61,7 @@ def main() -> None:
         fail(f"自动更新失败：{pulled.stderr.strip() or pulled.stdout.strip()}")
 
     new_head = git("rev-parse", "HEAD").stdout.strip()
+    mark_update_checked(upstream_ref)
     print(f"✅ 已更新 skill：{current[:7]} -> {new_head[:7]}")
     print("ℹ️  本次运行请重新读取更新后的 SKILL.md，再继续执行后续流程。")
 

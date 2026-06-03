@@ -8,6 +8,7 @@ import re
 import sys
 from pathlib import Path
 
+from runtime_guard import ensure_update_checked_for_git_install
 from skill_runtime import ensure_pymupdf
 
 PAGE_RE = re.compile(r"^page-(\d{3})\.(png|jpg|jpeg|webp)$", re.IGNORECASE)
@@ -72,6 +73,8 @@ def assemble_with_pillow(images: list[Path], output: Path) -> None:
 
 
 def main() -> None:
+    ensure_update_checked_for_git_install()
+
     parser = argparse.ArgumentParser(description="按页码顺序将生成图片合成为 PDF")
     parser.add_argument("--images-dir", required=True, help="包含 page-NNN 图片的目录")
     parser.add_argument("--output", required=True, help="输出 PDF 路径")
