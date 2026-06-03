@@ -4,7 +4,7 @@
 
 
 ## 安装说明
-把下面的话发送给你的 AI Agnet 即可完成安装：请用 Git clone 的方式安装这个 skill，不要用默认下载复制方式，https://github.com/Xuebin-Yang/ppt-redesign。
+把下面的话发送给你的 AI Agnet 即可完成安装：请用 Git clone 的方式安装这个 skill，不要用默认下载复制方式，https://github.com/Xuebin-Yang/ppt-redesign
 > 因为 skill 还在迭代中，通过这个 Git clone 形式来安装后，每次运行 skill 时都会自动拉取 github 上的最新版本来运行）
 
 ## 注意事项
