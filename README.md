@@ -18,17 +18,6 @@ Send this message to your AI Agent to install the skill: "Please install this sk
 ## Usage
 Upload the PDF version of your PPT in an AI Agent conversation and invoke this skill. In Codex, the image generation capability maps to the built-in `image_gen` tool; in other AI Agents, replace it with the agent's own image generation capability.
 
-## 版本规则
-- 当前版本文件位于根目录 `VERSION`。
-- 默认每次 push 发布一个小版本：`v1.0 -> v1.1 -> v1.2`。
-- 只有在明确说明要发大版本时，才升级主版本：例如 `v1.1 -> v2.0`。
-- 每次运行主要脚本时，都会先打印当前运行版本号。
-
-## Versioning
-- The current version is stored in the root `VERSION` file.
-- By default, every push releases the next small version: `v1.0 -> v1.1 -> v1.2`.
-- The major version is only bumped when explicitly requested, for example `v1.1 -> v2.0`.
-- Each main script prints the current running version before doing its work.
 
 ## 注意事项
 - Skill 运行耗费的额度较大，如果只是简单初步测试，可以用只有几页的 PPT 来测试。
