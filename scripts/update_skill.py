@@ -33,7 +33,8 @@ def main() -> None:
 
     dirty = git("status", "--porcelain").stdout.strip()
     if dirty:
-        fail("当前 skill 目录存在本地未提交改动，为避免覆盖，已停止自动更新。")
+        print("ℹ️  当前 skill 目录存在本地修改，跳过远端更新检查，继续使用本地版本。")
+        return
 
     upstream = git("rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}", check=False)
     if upstream.returncode != 0:

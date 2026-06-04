@@ -6,7 +6,7 @@
   2. 生成每页空白模板  page_prompts/page-NNN.md（Agent 填写）
   3. --finalize 后合并为  batched_prompts/batch-NN.md
 
-不直接调用生图能力；Agent 完善提示词后逐页调用 Codex 内置生图能力。
+不直接调用生图能力；Agent 完善提示词后可逐页调用当前 Agent 自带生图能力。
 """
 
 from __future__ import annotations
@@ -54,53 +54,18 @@ def render_pdf(pdf_path: Path, out_dir: Path, refresh: bool = False) -> int:
     return total
 
 
-def detect_prompt_language(pdf_path: Path) -> tuple[str, str]:
-    """用 PDF 文字层做轻量语言判断；最终仍以 Agent 视觉读图为准。"""
-    try:
-        import fitz
-    except ImportError:
-        ensure_pymupdf()
-        import fitz
-
-    with fitz.open(str(pdf_path)) as doc:
-        text = "\n".join(page.get_text("text") for page in doc)
-
-    chinese = len(re.findall(r"[\u4e00-\u9fff]", text))
-    english = len(re.findall(r"[A-Za-z]{2,}", text))
-    language = LANG_CN if chinese >= english else LANG_EN
-    detail = f"中文字符 {chinese}，英文词 {english}"
-    return language, detail
-
-
 # ──────────────────────────── 空白模板 ────────────────────────────
 
 
-def page_template(num: int, total: int, prompt_language: str) -> str:
-    if prompt_language == LANG_EN:
-        final_prompt = """\
-Create a poster image ([describe this page's core topic, such as data display / process explanation / key message]).
-
-Style: [Write the unified visual style statement here: overall mood + color palette with hex values + typography tone + spacing + restrained flat visual language.]
-
-Layout: [Describe a content-driven visual structure, using one main structure with only necessary supporting elements, such as color-block sections / process flow / large-number emphasis / comparison columns / timeline. Keep it flat.]
-
-Text overview:
-Page topic: [One sentence explaining what this page is about]
-Main title: "[Write the exact main title]"
-Other text: [List every subtitle, section title, body line, bullet, data number, caption, and corner label exactly; do not include the original page number]
-
-Aspect ratio: landscape 16:9.
-"""
-    else:
-        final_prompt = """\
+def page_template(num: int, total: int) -> str:
+    final_prompt = """\
 生成一张海报图像（[用本页核心主题关键词描述，如：数据展示/流程说明/核心观点等]）。
 
 风格：[填写：整体视觉气质 + 配色（含色值）+ 字体风格 + 空间感 + 克制的装饰语言，扁平化。风格不必刻意极简，但画面元素应简洁]
 
-版式（可视化 + 扁平化）：[填写：结合内容语义推导排版，只选一个核心视觉结构，辅以少量必要元素；减少装饰，不铺满背景。例如纯色色块分区/流程图/大字强调/左右对比/时间轴等，不要立体/3D/拟物]
+版式：[填写：结合内容语义推导排版，只选一个核心视觉结构，辅以少量必要元素；减少装饰，不铺满背景。例如纯色色块分区/流程图/大字强调/左右对比/时间轴等]
 
 文字概览：
-页面主题：[1句话说明这页讲什么]
 大标题：「[写出大标题具体文案]」
 其他文字：[逐一写出所有副标题、小标题、正文、列表项、数据、图注、角标等具体文案；不写原稿页码]
 
@@ -113,7 +78,7 @@ Aspect ratio: landscape 16:9.
 > **操作说明**：先 Read `source_pages/page-{num:03d}.png`，
 > 视觉识别整页内容（文字 + 图片 + 布局），然后填写下方所有字段。
 > 不要凭空猜测，以视觉识别结果为准。
-> 目标提示词语言：{prompt_language}。最终提示词必须使用该语言；原稿中的文字内容保持原文逐一列出。
+> 目标提示词语言：[待 Agent 浏览全稿后判断：中文 / English]。最终提示词必须使用该语言；原稿中的文字内容保持原文逐一列出。
 
 ## 最终提示词
 
@@ -130,18 +95,17 @@ def create_workspace(pdf_path: Path, out_dir: Path, refresh: bool = False):
     (out_dir / "batched_prompts").mkdir(exist_ok=True)
 
     total = render_pdf(pdf_path, out_dir, refresh)
-    prompt_language, language_detail = detect_prompt_language(pdf_path)
 
     for i in range(1, total + 1):
         tmpl = out_dir / "page_prompts" / f"page-{i:03d}.md"
         if not tmpl.exists() or refresh:
-            tmpl.write_text(page_template(i, total, prompt_language), encoding="utf-8")
+            tmpl.write_text(page_template(i, total), encoding="utf-8")
 
     # 整体文档占位
     for fname, placeholder in [
         (
             "deck_style_brief.md",
-            f"# 统一视觉风格简报\n\n目标提示词语言：{prompt_language}（粗略判断：{language_detail}）。\n\n[待 Agent 浏览全部 source_pages/*.png 后填写]\n",
+            "# 统一视觉风格简报\n\n目标提示词语言：[待 Agent 浏览全部 source_pages/*.png 后判断：中文 / English]\n\n[待 Agent 浏览全部 source_pages/*.png 后填写]\n",
         ),
         ("visual_optimization_recommendations.md", "# 整套 PPT 视觉优化建议\n\n[待 Agent 浏览全部 source_pages/*.png 后填写]\n"),
     ]:
@@ -150,8 +114,7 @@ def create_workspace(pdf_path: Path, out_dir: Path, refresh: bool = False):
             f.write_text(placeholder, encoding="utf-8")
 
     print(f"✅ 工作区就绪：{out_dir}")
-    print(f"   目标提示词语言：{prompt_language}（粗略判断：{language_detail}）")
-    print(f"   下一步：依次 Read source_pages/page-NNN.png，视觉识别后填写 page_prompts/page-NNN.md")
+    print("   下一步：浏览 source_pages 判断目标提示词语言，再依次 Read page-NNN.png 填写 page_prompts/page-NNN.md")
 
 
 # ──────────────────────────── 合批 ────────────────────────────
@@ -195,24 +158,23 @@ def finalize(out_dir: Path):
 
     for batch_idx, start in enumerate(range(0, len(files), BATCH_SIZE), 1):
         group = files[start : start + BATCH_SIZE]
-        s, e = start + 1, start + len(group)
         if prompt_language == LANG_EN:
             lines = [
-                f"Here are {len(group)} prompts. Use GPT-Image to generate {len(group)} images, "
-                f"corresponding to source pages {s:03d}-{e:03d}. Generate each image separately and in order.\n"
+                f"Here are {len(group)} prompts. Use an available image generation model, such as GPT-Image, to generate {len(group)} images, "
+                f"one image per prompt. Generate each image separately and in order.\n"
             ]
         else:
             lines = [
-                f"以下是 {len(group)} 份提示词，请用 GPT-Image 一次性生成 {len(group)} 张图片，"
-                f"对应原 PPT 第 {s:03d} ~ {e:03d} 页。每张提示词彼此独立，请按顺序逐张生成。\n"
+                f"以下是 {len(group)} 份提示词，请用可用的生图模型（如 GPT-Image）生成 {len(group)} 张图片，"
+                f"每份提示词对应一张图片。每张提示词彼此独立，请按顺序逐张生成。\n"
             ]
         for j, f in enumerate(group, 1):
             raw = f.read_text(encoding="utf-8")
             body = raw.split("## 最终提示词", 1)[1].strip() if "## 最终提示词" in raw else raw.strip()
             if prompt_language == LANG_EN:
-                lines.append(f"## Image {j} (source page {start+j:03d})\n\n{body}\n")
+                lines.append(f"## Image {j}\n\n{body}\n")
             else:
-                lines.append(f"## 第 {j} 张（原 PPT 第 {start+j:03d} 页）\n\n{body}\n")
+                lines.append(f"## 第 {j} 张\n\n{body}\n")
 
         out_file = batched_dir / f"batch-{batch_idx:02d}.md"
         out_file.write_text("\n".join(lines), encoding="utf-8")

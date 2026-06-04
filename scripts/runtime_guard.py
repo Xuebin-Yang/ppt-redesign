@@ -36,6 +36,10 @@ def current_head() -> str:
     return git("rev-parse", "HEAD").stdout.strip()
 
 
+def has_local_changes() -> bool:
+    return bool(git("status", "--porcelain").stdout.strip())
+
+
 def mark_update_checked(upstream: str) -> None:
     if not is_git_install():
         return
@@ -45,6 +49,8 @@ def mark_update_checked(upstream: str) -> None:
 
 def ensure_update_checked_for_git_install() -> None:
     if not is_git_install():
+        return
+    if has_local_changes():
         return
 
     stamp_path = git_dir() / STAMP_NAME

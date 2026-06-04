@@ -1,17 +1,17 @@
 # ppt-redesign
 
-一个面向 PPT 视觉重设计的 Codex Skill：输入从 PowerPoint/PPT/PPTX 导出的 PDF，自动拆分页面、逐页视觉识别内容、生成中文视觉优化建议与逐页生图提示词，并使用 Codex 内置 `image_gen` 能力逐页生成重设计图片，最终合成为一份新的 PDF。中文 PDF 输出中文提示词，英文 PDF 输出英文提示词，中英混排时按占比更多的语言输出。
+一个面向 PPT 视觉重设计的 AI Agent Skill：输入从 PowerPoint/PPT/PPTX 导出的 PDF，自动拆分页面、逐页视觉识别内容、生成中文视觉优化建议与逐页生图提示词，并默认使用当前 AI Agent 自带的生图能力逐页生成重设计图片，最终合成为一份新的 PDF。中文 PDF 输出中文提示词，英文 PDF 输出英文提示词，中英混排时按占比更多的语言输出；如果用户只需要提示词，也可以只交付合批后的提示词集合。
 
 
 ## 安装说明
-把下面的话发送给你的 Codex 即可完成安装：请用 Git clone 的方式安装这个 skill，不要用默认下载复制方式，https://github.com/Xuebin-Yang/ppt-redesign
+把下面的话发送给你的 AI Agent 即可完成安装：请用 Git clone 的方式安装这个 skill，不要用默认下载复制方式，https://github.com/Xuebin-Yang/ppt-redesign
 > 因为 skill 还在迭代中，通过这个 Git clone 形式来安装后，每次运行 skill 时都会自动拉取 github 上的最新版本来运行）
 
 ## 使用方式
-在 Codex 对话中上传 PDF 版的 PPT，然后用 / 使用技能
+在 AI Agent 对话中上传 PDF 版的 PPT，然后使用这个 skill。若在 Codex 中使用，生图能力对应内置 `image_gen`；其他 AI Agent 使用时，请替换为该 Agent 自带的生图能力。
 
 ## 注意事项
 - Skill 运行耗费的 Codex 额度较大，如果只是简单初步测试，可以用只有几页的 PPT 来测试。
 - 支持中文、英文和中英混排 PDF；中英混排时会做简单语言占比判断。
 - 目前这个 Skill 只支持 PDF 输入，不支持其他格式输入。将来会支持其他格式输入。
-- 目前只允许在 Codex 上运行，因为需要调用 Codex 的 gpt image 2 来生图。
+- 默认完整模式需要当前 AI Agent 具备生图能力；只输出提示词模式不需要生图能力。
