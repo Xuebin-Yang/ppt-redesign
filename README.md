@@ -4,20 +4,15 @@
 
 
 ## 安装说明
-把下面的话发送给你的 AI Agent 即可完成安装：请用 Git clone 的方式安装这个 skill，不要用默认下载复制方式，https://github.com/Xuebin-Yang/ppt-redesign
-> 因为 skill 还在迭代中，通过这个 Git clone 形式来安装后，每次运行 skill 时都会自动拉取 github 上的最新版本来运行）
+把下面的话发送给你的 Codex 即可完成安装：请用 Git clone 的方式安装这个 skill，不要用默认下载复制方式，https://github.com/Xuebin-Yang/ppt-redesign
+> 因为 skill 还在迭代中，通过这个 Git clone 形式来安装后，每次运行 skill 时都会自动拉取 github 上的最新版本来运行。）
 
 ## 使用方式
 在 AI Agent 对话中上传 PDF 版的 PPT，然后使用这个 skill。若在 Codex 中使用，生图能力对应内置 `image_gen`；其他 AI Agent 使用时，请替换为该 Agent 自带的生图能力。
 
-## 版本规则
-- 当前版本文件位于根目录 `VERSION`。
-- 默认每次 push 发布一个小版本：`v1.0 -> v1.1 -> v1.2`。
-- 只有在明确说明要发大版本时，才升级主版本：例如 `v1.1 -> v2.0`。
-- 每次运行主要脚本时，都会先打印当前运行版本号。
 
 ## 注意事项
-- Skill 运行耗费的 Codex 额度较大，如果只是简单初步测试，可以用只有几页的 PPT 来测试。
-- 支持中文、英文和中英混排 PDF；中英混排时会做简单语言占比判断。
+- Skill 运行耗费的额度较大，如果只是简单初步测试，可以用只有几页的 PPT 来测试。
+- 支持中文、英文和中英混排 PDF。
 - 目前这个 Skill 只支持 PDF 输入，不支持其他格式输入。将来会支持其他格式输入。
-- 默认完整模式需要当前 AI Agent 具备生图能力；只输出提示词模式不需要生图能力。
+- 目前只能在 Codex 上使用完整能力，安装在其他 AI Agent 上只会输出生图提示词。
