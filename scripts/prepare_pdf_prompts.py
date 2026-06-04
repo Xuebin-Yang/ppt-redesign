@@ -24,6 +24,11 @@ BATCH_SIZE = 8
 LANG_CN = "中文"
 LANG_EN = "English"
 LANG_RE = re.compile(r"目标提示词语言：(.+)")
+PROMPT_LANGUAGE_LINE_RE = re.compile(r"^\s*(?:目标提示词语言|Prompt language)\s*[:：].*$", re.MULTILINE)
+POSTER_ACTION_RE = re.compile(
+    r"^\s*(?:生成一张海报图像|Create a poster image)\s*[（(][^）)]*[）)]\s*[。.]*\s*$",
+    re.MULTILINE,
+)
 
 # ──────────────────────────── PDF 渲染 ────────────────────────────
 
@@ -59,8 +64,6 @@ def render_pdf(pdf_path: Path, out_dir: Path, refresh: bool = False) -> int:
 
 def page_template(num: int, total: int) -> str:
     final_prompt = """\
-生成一张海报图像（[用本页核心主题关键词描述，如：数据展示/流程说明/核心观点等]）。
-
 风格：[填写：整体视觉气质 + 配色（含色值）+ 字体风格 + 空间感 + 克制的装饰语言，扁平化。风格不必刻意极简，但画面元素应简洁]
 
 版式：[填写：结合内容语义推导排版，只选一个核心视觉结构，辅以少量必要元素；减少装饰，不铺满背景。例如纯色色块分区/流程图/大字强调/左右对比/时间轴等]
@@ -171,6 +174,8 @@ def finalize(out_dir: Path):
         for j, f in enumerate(group, 1):
             raw = f.read_text(encoding="utf-8")
             body = raw.split("## 最终提示词", 1)[1].strip() if "## 最终提示词" in raw else raw.strip()
+            body = PROMPT_LANGUAGE_LINE_RE.sub("", body)
+            body = POSTER_ACTION_RE.sub("", body).strip()
             if prompt_language == LANG_EN:
                 lines.append(f"## Image {j}\n\n{body}\n")
             else:
