@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import shutil
 import subprocess
 from pathlib import Path
 
@@ -10,6 +11,8 @@ from runtime_guard import mark_update_checked, print_version
 
 
 ROOT = Path(__file__).resolve().parents[1]
+REPO_URL = "https://github.com/Xuebin-Yang/ppt-redesign.git"
+MAIN_BRANCH = "main"
 
 
 def git(*args: str, check: bool = True) -> subprocess.CompletedProcess[str]:
@@ -21,19 +24,74 @@ def git(*args: str, check: bool = True) -> subprocess.CompletedProcess[str]:
     )
 
 
+def git_bytes(*args: str, check: bool = True) -> subprocess.CompletedProcess[bytes]:
+    return subprocess.run(
+        ["git", "-C", str(ROOT), *args],
+        check=check,
+        capture_output=True,
+    )
+
+
 def fail(message: str, code: int = 1) -> None:
     print(f"❌ {message}")
     raise SystemExit(code)
+
+
+def remote_tree_matches_local(remote_ref: str) -> bool:
+    files = git("ls-tree", "-r", "--name-only", remote_ref, check=False)
+    if files.returncode != 0:
+        return False
+
+    for rel_path in files.stdout.splitlines():
+        local_file = ROOT / rel_path
+        if not local_file.is_file():
+            return False
+        remote_file = git_bytes("show", f"{remote_ref}:{rel_path}", check=False)
+        if remote_file.returncode != 0 or local_file.read_bytes() != remote_file.stdout:
+            return False
+    return True
+
+
+def bootstrap_git_install() -> bool:
+    print("ℹ️  当前 skill 没有 Git 元数据，尝试初始化以支持后续自动更新...")
+    git_dir = ROOT / ".git"
+
+    try:
+        if git("init", check=False).returncode != 0:
+            return False
+        if git("remote", "get-url", "origin", check=False).returncode != 0:
+            if git("remote", "add", "origin", REPO_URL, check=False).returncode != 0:
+                return False
+
+        fetched = git("fetch", "--depth", "1", "origin", MAIN_BRANCH, check=False)
+        if fetched.returncode != 0:
+            return False
+
+        remote_ref = f"origin/{MAIN_BRANCH}"
+        if not remote_tree_matches_local(remote_ref):
+            print("⚠️  当前目录内容与远端版本不同，无法安全自动转为 Git 安装版。")
+            print("   本次继续使用本地版本；若需要自动更新，请手动重新安装 Git clone 版。")
+            return False
+
+        if git("checkout", "-B", MAIN_BRANCH, remote_ref, check=False).returncode != 0:
+            return False
+        git("branch", "--set-upstream-to", remote_ref, MAIN_BRANCH, check=False)
+        print("✅ 已将当前 skill 安全转换为 Git 安装版，后续可自动检查更新。")
+        return True
+    finally:
+        if git_dir.exists() and git("rev-parse", "--verify", "HEAD", check=False).returncode != 0:
+            shutil.rmtree(git_dir, ignore_errors=True)
 
 
 def main() -> None:
     print_version()
 
     if not (ROOT / ".git").exists():
-        print("ℹ️  当前为下载版安装，跳过更新检查，继续使用本地版本。")
-        return
+        if not bootstrap_git_install():
+            print("ℹ️  当前为下载版安装，跳过更新检查，继续使用本地版本。")
+            return
 
-    dirty = git("status", "--porcelain").stdout.strip()
+    dirty = git("status", "--porcelain", "--untracked-files=no").stdout.strip()
     if dirty:
         print("ℹ️  当前 skill 目录存在本地修改，跳过远端更新检查，继续使用本地版本。")
         return

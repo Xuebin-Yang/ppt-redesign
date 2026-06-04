@@ -38,7 +38,7 @@ def current_head() -> str:
 
 
 def has_local_changes() -> bool:
-    return bool(git("status", "--porcelain").stdout.strip())
+    return bool(git("status", "--porcelain", "--untracked-files=no").stdout.strip())
 
 
 def skill_version() -> str:
