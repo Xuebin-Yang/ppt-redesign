@@ -57,14 +57,19 @@ def bootstrap_git_install() -> bool:
     git_dir = ROOT / ".git"
 
     try:
-        if git("init", check=False).returncode != 0:
+        initialized = git("init", check=False)
+        if initialized.returncode != 0:
+            print(f"⚠️  Git 初始化失败：{initialized.stderr.strip() or initialized.stdout.strip()}")
             return False
         if git("remote", "get-url", "origin", check=False).returncode != 0:
-            if git("remote", "add", "origin", REPO_URL, check=False).returncode != 0:
+            added = git("remote", "add", "origin", REPO_URL, check=False)
+            if added.returncode != 0:
+                print(f"⚠️  远端关联失败：{added.stderr.strip() or added.stdout.strip()}")
                 return False
 
         fetched = git("fetch", "--depth", "1", "origin", MAIN_BRANCH, check=False)
         if fetched.returncode != 0:
+            print(f"⚠️  远端拉取失败：{fetched.stderr.strip() or fetched.stdout.strip()}")
             return False
 
         remote_ref = f"origin/{MAIN_BRANCH}"
@@ -73,7 +78,9 @@ def bootstrap_git_install() -> bool:
             print("   本次继续使用本地版本；若需要自动更新，请手动重新安装 Git clone 版。")
             return False
 
-        if git("checkout", "-B", MAIN_BRANCH, remote_ref, check=False).returncode != 0:
+        checked_out = git("checkout", "-B", MAIN_BRANCH, "--force", remote_ref, check=False)
+        if checked_out.returncode != 0:
+            print(f"⚠️  Git 分支切换失败：{checked_out.stderr.strip() or checked_out.stdout.strip()}")
             return False
         git("branch", "--set-upstream-to", remote_ref, MAIN_BRANCH, check=False)
         print("✅ 已将当前 skill 安全转换为 Git 安装版，后续可自动检查更新。")
