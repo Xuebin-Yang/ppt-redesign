@@ -6,7 +6,7 @@ from __future__ import annotations
 import subprocess
 from pathlib import Path
 
-from runtime_guard import mark_update_checked
+from runtime_guard import mark_update_checked, print_version
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -27,6 +27,8 @@ def fail(message: str, code: int = 1) -> None:
 
 
 def main() -> None:
+    print_version()
+
     if not (ROOT / ".git").exists():
         print("ℹ️  当前为下载版安装，跳过更新检查，继续使用本地版本。")
         return

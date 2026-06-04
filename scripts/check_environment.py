@@ -6,7 +6,7 @@ from __future__ import annotations
 import importlib.util
 import sys
 
-from runtime_guard import ensure_update_checked_for_git_install
+from runtime_guard import ensure_update_checked_for_git_install, print_version
 from skill_runtime import add_private_deps, ensure_pymupdf
 
 
@@ -15,6 +15,7 @@ def has_module(name: str) -> bool:
 
 
 def main() -> None:
+    print_version()
     ensure_update_checked_for_git_install()
     add_private_deps()
     has_fitz = has_module("fitz")

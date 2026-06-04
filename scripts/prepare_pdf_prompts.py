@@ -17,7 +17,7 @@ import shutil
 import sys
 from pathlib import Path
 
-from runtime_guard import ensure_update_checked_for_git_install
+from runtime_guard import ensure_update_checked_for_git_install, print_version
 from skill_runtime import ensure_pymupdf
 
 BATCH_SIZE = 8
@@ -188,6 +188,7 @@ def finalize(out_dir: Path):
 
 
 if __name__ == "__main__":
+    print_version()
     ensure_update_checked_for_git_install()
 
     parser = argparse.ArgumentParser(description="PPT 提示词重设计工具（仅输出提示词）")

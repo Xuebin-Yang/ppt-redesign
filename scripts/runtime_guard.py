@@ -11,6 +11,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 STAMP_NAME = "ppt-redesign-update-check.json"
+DEFAULT_VERSION = "v1.0"
 
 
 def git(*args: str, check: bool = True) -> subprocess.CompletedProcess[str]:
@@ -38,6 +39,17 @@ def current_head() -> str:
 
 def has_local_changes() -> bool:
     return bool(git("status", "--porcelain").stdout.strip())
+
+
+def skill_version() -> str:
+    version_file = ROOT / "VERSION"
+    if not version_file.exists():
+        return DEFAULT_VERSION
+    return version_file.read_text(encoding="utf-8").strip() or DEFAULT_VERSION
+
+
+def print_version() -> None:
+    print(f"ℹ️  当前运行版本：ppt-redesign {skill_version()}")
 
 
 def mark_update_checked(upstream: str) -> None:
