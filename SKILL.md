@@ -1,6 +1,6 @@
 ---
 name: ppt-redesign
-description: 当用户提供从 PowerPoint/PPT/PPTX 导出的 PDF（包括长图版 PDF）并希望生成风格参考图、逐页重设计提示词和重设计图片/PDF 时使用此 skill。v2.0 是两阶段升级版：除 Codex 完整模式下逐页生图与 PDF 合成改为通过 create_thread 启动第二阶段新会话执行外，其他流程与 ppt-redesign 保持一致。它会拆分 PDF 为页面图像供分析，根据 PDF 主语言输出每一页的中/英文生图提示词；在 Codex 中默认先用整套风格提示词生成 1 张风格参考图，再由用户手动回复「继续」后，用 create_thread 开启第二阶段新会话，让新会话基于每页提示词 + 同一张风格参考图逐页生图并合成为 PDF；在 Codex 以外的平台只输出风格参考图提示词和合批后的生图提示词。若用户明确要求只输出提示词或不输出 PDF，则在 Codex 中仍生成风格参考图，但不生成逐页图片、不合成 PDF，只交付风格参考图、风格参考图提示词和最终生图提示词合集。原 PPT 中可视觉识别的标题、副标题、正文、列表项、数字、图注、角标等必须逐一写入「文字描述」，真实图片/截图/照片/插画/产品图/人像等图片素材必须逐一写入「图片描述」；若原 PPT 存在整页背景图，且背景图本身是有表达意义的真实图片内容，也必须识别并写入「图片描述」，不得改成数量和层级概括。当用户提到「PPT 提示词」「PPT 重设计」「长图 PDF 重设计」「prompt-only PPT redesign」「ppt redesign 3」等需求时触发。
+description: 当用户提供从 PowerPoint/PPT/PPTX 导出的 PDF（包括长图版 PDF）并希望生成风格参考图、逐页重设计提示词和重设计图片/PDF 时使用此 skill。v2.1 是两阶段升级版：除 Codex 完整模式下逐页生图与 PDF 合成改为通过 create_thread 启动第二阶段新会话执行外，其他流程与 ppt-redesign 保持一致。它会拆分 PDF 为页面图像供分析，根据 PDF 主语言输出每一页的中/英文生图提示词；在 Codex 中默认先用整套风格提示词生成 1 张风格参考图，再根据用户初始意图进入第二阶段：若用户一开始要求「自动进入第二阶段」「自动继续」「不用等我确认」等，则第一阶段完成后立即 create_thread；否则等待用户手动回复「继续」后再 create_thread。第二阶段新会话基于每页提示词 + 同一张风格参考图逐页生图并合成为 PDF；在 Codex 以外的平台只输出风格参考图提示词和合批后的生图提示词。若用户明确要求只输出提示词或不输出 PDF，则在 Codex 中仍生成风格参考图，但不生成逐页图片、不合成 PDF，只交付风格参考图、风格参考图提示词和最终生图提示词合集。原 PPT 中可视觉识别的标题、副标题、正文、列表项、数字、图注、角标等必须逐一写入「文字描述」，真实图片/截图/照片/插画/产品图/人像等图片素材必须逐一写入「图片描述」；若原 PPT 存在整页背景图，且背景图本身是有表达意义的真实图片内容，也必须识别并写入「图片描述」，不得改成数量和层级概括。当用户提到「PPT 提示词」「PPT 重设计」「长图 PDF 重设计」「prompt-only PPT redesign」「ppt redesign 3」等需求时触发。
 ---
 
 # PPT 提示词重设计 (按 PDF 主语言输出提示词，默认逐页生图并合成 PDF)
@@ -33,7 +33,7 @@ description: 当用户提供从 PowerPoint/PPT/PPTX 导出的 PDF（包括长图
 - 若用户明确要求只输出提示词或不输出 PDF，在 Codex 中仍需先用 `deck_style_brief.md` 生成 1 张风格参考图；随后停止在 `style_reference/style_reference.png`、`deck_style_brief.md` 与 `batched_prompts/batch-XX.md` 交付，不生成逐页图片、不合成 PDF。
 - 在 Codex 以外的平台使用本 skill 时，固定为提示词模式：不调用生图能力，不生成 `generated_images/`，不合成 `redesigned_deck.pdf`，只交付 `deck_style_brief.md` 与 `batched_prompts/batch-XX.md`。
 - 默认完整模式中，`deck_style_brief.md` 的最终提示词先单独调用一次生图能力，保存为 `style_reference/style_reference.png`；后续所有页面都使用这同一张参考图。
-- 默认完整模式中，逐页生图和 PDF 合成必须在 `create_thread` 启动的第二阶段新会话中执行；当前会话完成 `style_reference/style_reference.png` 与 `batched_prompts/batch-XX.md` 后，向用户请求确认，用户手动回复「继续」后立即调用 `create_thread`，不要在当前会话继续逐页生图。
+- 默认完整模式中，逐页生图和 PDF 合成必须在 `create_thread` 启动的第二阶段新会话中执行；当前会话完成 `style_reference/style_reference.png` 与 `batched_prompts/batch-XX.md` 后，按用户初始意图决定是否等待确认：若用户在最开始明确表达了「自动进入第二阶段」「自动继续」「不用等我确认」「第一阶段后直接继续」等含义，则第一阶段完成后立即调用 `create_thread`；否则向用户请求确认，用户手动回复「继续」后立即调用 `create_thread`。不要在当前会话继续逐页生图。
 - 默认完整模式中，每个 `page_prompts/page-###.md` 的最终提示词单独调用一次生图能力，并且每次都必须同时提供 `style_reference/style_reference.png` 作为风格参考图；禁止把多页提示词合并为一次生图请求。
 - 默认完整模式中，逐页生图时允许且只允许提供 `style_reference/style_reference.png` 这一张图片作为参考图；不得额外附带 `source_pages/page-###.png`、原 PDF 页面截图、其他本地图片、历史生成页图或任何第二张参考图。
 - 默认完整模式的最终交付 PDF 中，每一页图片必须来自上述「单页提示词 + 同一张风格参考图」的生图能力调用结果；禁止通过生成 PPTX、HTML、SVG、Canvas、网页截图、本地绘图、代码渲染等非生图模型方式制作页面图，再转换成 PDF。
@@ -228,18 +228,22 @@ python3 scripts/prepare_pdf_prompts.py --out ppt-prompts-output --finalize
 
 先确认 `style_reference/style_reference.png` 已由 Step 4 成功生成并可读取。如果缺失，必须回到 Step 4 生成参考图；不得直接使用单页提示词生图。
 
-当前会话到这里停止逐页生图，先向用户发起一句确认：
+当前会话到这里停止逐页生图，并先判断用户在最开始是否明确要求自动进入第二阶段。可视为自动进入第二阶段的表达包括但不限于：「自动进入第二阶段」「自动继续」「不用等我确认」「无需我回复继续」「第一阶段后直接继续」「直接跑第二阶段」。
+
+若用户最开始已经表达上述自动意图，则当前会话不要再等待用户确认，立即调用 `create_thread` 创建第二阶段新会话。
+
+若用户最开始没有表达自动意图，则先向用户发起一句确认：
 
 ```
 第一阶段已完成。请回复「继续」以开启第二阶段新会话，仅基于 style_reference.png 和页面提示词逐页生图并合成 PDF。
 ```
 
-用户回复「继续」后，当前会话必须调用 Codex 线程工具 `create_thread` 创建一个新会话来执行第二阶段。优先使用新的 projectless 线程，并在初始 prompt 中写入完整的绝对路径与硬约束；如果当前 Codex 环境要求使用 project target，则使用当前工作区对应的 project target。不要使用 `fork_thread`。
+当用户最开始已经要求自动进入第二阶段，或用户后来回复「继续」后，当前会话必须调用 Codex 线程工具 `create_thread` 创建一个新会话来执行第二阶段。优先使用新的 projectless 线程，并在初始 prompt 中写入完整的绝对路径与硬约束；如果当前 Codex 环境要求使用 project target，则使用当前工作区对应的 project target。不要使用 `fork_thread`。
 
 发给 `create_thread` 的初始 prompt 必须自包含，并使用下面模板。将 `[绝对路径]`、`[页数]`、`[批次数]` 替换为当前实际值；必须把 `style_reference.png` 以 Markdown 图片形式显式放进新会话首条消息中：
 
 ```markdown
-这是 `ppt-redesign v2.0` 的第二阶段任务。请只执行逐页生图、归档图片和合成 PDF，不要重新分析 PDF。
+这是 `ppt-redesign v2.1` 的第二阶段任务。请只执行逐页生图、归档图片和合成 PDF，不要重新分析 PDF。
 
 参考图：
 ![style_reference]([style_reference.png 的绝对路径])

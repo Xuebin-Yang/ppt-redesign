@@ -1,13 +1,15 @@
-# ppt-redesign v2.0
+# ppt-redesign v2.1
 
 一个面向 PPT 视觉重设计的 Codex Skill：输入从 PowerPoint/PPT/PPTX 导出的 PDF，先视觉识别每页内容，生成统一风格参考图和逐页生图提示词，再基于同一张风格参考图逐页生成全新幻灯片图片，最终合成为 `redesigned_deck.pdf`。
 
-v2.0 是一次重要升级：默认完整流程被拆成两个阶段。第一阶段完成 PDF 拆分、页面识别、风格参考图生成和提示词合批；然后 Codex 会停下来等待用户手动回复 **“继续”**。用户回复后，才会进入第二阶段，新开一个 Codex 会话逐页生图并合成 PDF。
+v2.1 的默认完整流程仍然分成两个阶段。第一阶段完成 PDF 拆分、页面识别、风格参考图生成和提示词合批；第二阶段新开一个 Codex 会话逐页生图并合成 PDF。
+
+默认情况下，第一阶段结束后 Codex 会停下来等待用户手动回复 **“继续”**。如果用户在最开始就说了类似 **“自动进入第二阶段”**、**“自动继续”**、**“不用等我确认”**、**“第一阶段后直接继续”** 的话，第一阶段完成后会直接 `create_thread` 进入第二阶段。
 
 ## 为什么分成两个阶段
 
 - 第一阶段专注分析和提示词资产：`deck_style_brief.md`、`style_reference/style_reference.png`、`batched_prompts/batch-XX.md`。
-- 中途要求用户回复 **“继续”**，让用户可以先确认风格参考图与提示词资产已经准备好。
+- 默认中途要求用户回复 **“继续”**，让用户可以先确认风格参考图与提示词资产已经准备好；如果用户提前要求自动进入第二阶段，则跳过这次确认。
 - 第二阶段通过 `create_thread` 新开会话执行逐页生图，避免当前会话上下文过长，并强制只使用同一张 `style_reference.png` 作为视觉参考。
 - 每一页都会单独调用一次生图能力，不把多页提示词合并到一次生成中。
 
@@ -29,6 +31,8 @@ v2.0 是一次重要升级：默认完整流程被拆成两个阶段。第一阶
 2. 等待用户回复：`继续`
 3. 第二阶段：新会话逐页生成图片，并合成为最终 PDF。
 
+如果希望无人值守地衔接两阶段，可以在最开始直接说“自动进入第二阶段”或“第一阶段结束后自动继续”。这样第一阶段完成后会直接创建第二阶段新会话。若没有提前说明自动进入，也可以在第一阶段结束后回复 `继续` 来自动进入第二阶段。
+
 如果只需要提示词或不需要 PDF，请在任务中明确说明“只输出提示词”或“不输出 PDF”。Codex 中仍会生成一张风格参考图，但不会逐页生图，也不会合成 PDF。
 
 ## 默认完整流程
@@ -40,7 +44,7 @@ v2.0 是一次重要升级：默认完整流程被拆成两个阶段。第一阶
 5. 生成 `deck_style_brief.md`。
 6. 调用一次 `image_gen` 生成 `style_reference/style_reference.png`。
 7. 完善每页提示词，并按每 8 页一组输出到 `batched_prompts/batch-XX.md`。
-8. 等待用户回复 **“继续”**。
+8. 判断是否自动进入第二阶段：若用户最开始已要求自动进入，则直接继续；否则等待用户回复 **“继续”**。
 9. 通过 `create_thread` 启动第二阶段新会话。
 10. 第二阶段只基于 `style_reference.png` 和每页提示词逐页生图，输出 `generated_images/page-###.png`。
 11. 检查页码连续后合成为 `redesigned_deck.pdf`。
@@ -73,4 +77,4 @@ v2.0 是一次重要升级：默认完整流程被拆成两个阶段。第一阶
 
 ## English Summary
 
-`ppt-redesign` v2.0 redesigns a PDF-exported slide deck through a two-stage Codex workflow. Stage 1 analyzes the deck, creates a single style reference image, and writes batched page prompts. The user must manually reply **"继续"** before Stage 2 starts. Stage 2 opens a new Codex thread, generates each slide image one by one using only the shared style reference image and the corresponding page prompt, then assembles the images into `redesigned_deck.pdf`.
+`ppt-redesign` v2.1 redesigns a PDF-exported slide deck through a two-stage Codex workflow. Stage 1 analyzes the deck, creates a single style reference image, and writes batched page prompts. By default, the user replies **"继续"** before Stage 2 starts; if the initial request asks to auto-enter Stage 2, Codex starts Stage 2 immediately after Stage 1. Stage 2 opens a new Codex thread, generates each slide image one by one using only the shared style reference image and the corresponding page prompt, then assembles the images into `redesigned_deck.pdf`.
