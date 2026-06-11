@@ -1,6 +1,6 @@
 # ppt-redesign v2.1
 
-一个面向 PPT 视觉重设计的 Codex Skill：目前只能安装在 Codex 上运行，输入从 PowerPoint/PPT/PPTX 导出的 PDF，即可直接输出最终
+一个面向 PPT 视觉重设计的 Codex Skill：目前只能安装在 Codex 上运行，输入从 PowerPoint/PPT/PPTX 导出的 PDF，即可直接输出最终经过优化的 PDF 版的 PPT
 
 由于 Codex 本身的限制，本技能分为两个阶段来运行效果最佳。第一阶段完成 PDF 拆分、页面识别、风格参考图生成和提示词合批；第二阶段新开一个 Codex 会话逐页生图并合成 PDF。
 
