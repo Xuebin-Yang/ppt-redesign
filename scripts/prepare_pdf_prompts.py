@@ -23,14 +23,12 @@ from skill_runtime import ensure_pymupdf
 BATCH_SIZE = 8
 LANG_CN = "中文"
 LANG_EN = "English"
-LANG_RE = re.compile(r"目标提示词语言\s*[:：]\s*(中文|English)")
-PROMPT_LANGUAGE_LINE_RE = re.compile(r"^\s*>?\s*(?:目标提示词语言|Prompt language)\s*[:：].*$", re.MULTILINE)
+LANG_RE = re.compile(r"目标提示词语言：(.+)")
+PROMPT_LANGUAGE_LINE_RE = re.compile(r"^\s*(?:目标提示词语言|Prompt language)\s*[:：].*$", re.MULTILINE)
 POSTER_ACTION_RE = re.compile(
-    r"^\s*(?:生成一张海报图像|Create a poster image|生成一张横幅幻灯片)\s*[（(]?[^\n）)]*[）)]?\s*[。.]*\s*$",
+    r"^\s*(?:生成一张海报图像|Create a poster image)\s*[（(][^）)]*[）)]\s*[。.]*\s*$",
     re.MULTILINE,
 )
-CJK_RE = re.compile(r"[\u4e00-\u9fff]")
-LATIN_WORD_RE = re.compile(r"[A-Za-z]{2,}")
 
 # ──────────────────────────── PDF 渲染 ────────────────────────────
 
@@ -68,17 +66,14 @@ def page_template(num: int, total: int) -> str:
     final_prompt = """\
 横幅幻灯片
 
-风格：简约风格，配色从参考图中系统性地提取，用色精简，使用 1 种主色搭配 1-2 种辅助色。
+风格：[填写：只给大方向。整体气质 + 字体情绪 + 结构母题 + 2-4 个核心颜色名称与色彩角色，例如深蓝作为主色、米白作为背景色、金橙作为强调色。中文输出，不写十六进制色值，不把颜色写成冗长色表。不写纹理、材质、阴影、具体图标、线条类型、背景图案等细节装饰。]
 
-版式：[填写：只列举一个布局名称。内容页可选如左右分栏布局、核心数字布局、流程图式布局、对比分栏布局、数据看板布局等；封面页、章节页、结束页、目录页、过渡页可选封面布局、章节页布局、结束页布局、目录页布局、过渡页布局等。不要写解释句。]
+版式：[填写：只给大方向。一个核心视觉结构 + 主要元素大致位置 + 色彩分区，整体采用简洁扁平的横版幻灯片布局；优先时间轴、金字塔、流程图、对比分栏、循环图等清晰图形化结构。不写节点细节、图标类型、装饰线、渐变、阴影、纹理等元素级装饰。]
 
-内容要求：[填写：无真实图片素材时写「画面需要呈现指定文字。」；有真实图片素材时写「画面需要呈现指定文字和图片素材。」]
-
-文字描述：图中仅包含下列文字，不添加未列出文字：
+文字概览：
+仅呈现下列明确文字，不添加未列出的文字。
 大标题：「[写出大标题具体文案]」
 其他文字：[逐一写出所有副标题、小标题、正文、列表项、数据、图注、角标等具体文案；不写原稿页码]
-
-图片描述：[填写：若页面包含真实图片/截图/照片/插画/产品图/人像等图片素材，按「图片素材一：……」逐一描述图片内容与用途；若页面没有真实图片素材，删除本段。装饰性 icon、几何形状、线条、卡片底纹不算图片素材。]
 
 输出比例：横版 16:9。
 """
@@ -86,8 +81,11 @@ def page_template(num: int, total: int) -> str:
     return f"""\
 # 第 {num:03d} 页提示词（共 {total} 页）
 
-> **操作说明**：先 Read `source_pages/page-{num:03d}.png`，视觉识别整页内容（文字 + 图片 + 布局），然后填写下方所有字段。不要凭空猜测，以视觉识别结果为准。
-> 详细字段写作规范请参考 SKILL.md 中的 Hard Rules 与 Step 5「字段写作规范」。
+> **操作说明**：先 Read `source_pages/page-{num:03d}.png`，
+> 视觉识别整页内容（文字 + 图片 + 布局），然后填写下方所有字段。
+> 不要凭空猜测，以视觉识别结果为准。
+> 最终提示词正文第一行必须只写「横幅幻灯片」五个字，用来声明图片类型。
+> 写最终提示词前先做版式审查：风格与版式都只给大方向；版式必须是简洁图形化的横版幻灯片布局，例如时间轴、金字塔、流程图、对比分栏、循环图等。
 > 目标提示词语言：[待 Agent 浏览全稿后判断：中文 / English]。最终提示词必须使用该语言；原稿中的文字内容保持原文逐一列出。
 
 ## 最终提示词
@@ -103,7 +101,6 @@ def create_workspace(pdf_path: Path, out_dir: Path, refresh: bool = False):
     out_dir.mkdir(parents=True, exist_ok=True)
     (out_dir / "page_prompts").mkdir(exist_ok=True)
     (out_dir / "batched_prompts").mkdir(exist_ok=True)
-    (out_dir / "style_reference").mkdir(exist_ok=True)
 
     total = render_pdf(pdf_path, out_dir, refresh)
 
@@ -112,28 +109,20 @@ def create_workspace(pdf_path: Path, out_dir: Path, refresh: bool = False):
         if not tmpl.exists() or refresh:
             tmpl.write_text(page_template(i, total), encoding="utf-8")
 
-    style_prompt = (
-        "忽略此前对话中的所有上下文、图片、文件和页面截图。"
-        "只依据本提示词中从下一句开始的文字内容生成一张图片，为一个名为「[待 Agent 基于整套 PPT 主题填写名称]」的幻灯片打造一套内含多页的品牌视觉手册。"
-        "品牌整体气质应当基于这套幻灯片的内容主题、行业属性和受众定位重新推导，形成清晰、统一、具有设计感的视觉世界观。\n\n"
-        "视觉风格需采用大胆且具有实验性的品牌语言，包括：简洁扁平风格、现代字体设计、富有动感的视觉节奏，以及略带超现实感的图像表达。"
-        "整体氛围应传递出：[待 Agent 基于原 PPT 内容填写 4-6 个关键词]。\n\n"
-        "品牌手册中应体现：\n"
-        "- 对核心内容与关键信息的极致关注（content obsession）\n"
-        "- 多样化的视觉实验（visual experimentation）\n"
-        "- 版式系统探索（layout system exploration）\n"
-        "- 编辑风格表达（editorial expression）\n"
-        "- 沉浸式叙事体验（immersive storytelling）\n"
-        "- 跨页面品牌应用（cross-page brand application）\n\n"
-        "最终呈现应构建一个自信、当代、统一且完整的品牌世界观——既易于理解与接近，又具备强烈的艺术指导感（art direction），"
-        "在视觉上保持高度一致性，同时展现出高端创意工作室级别的美学标准。\n"
-    )
-    style_file = out_dir / "deck_style_brief.md"
-    if not style_file.exists() or refresh:
-        style_file.write_text(style_prompt, encoding="utf-8")
+    # 整体文档占位
+    for fname, placeholder in [
+        (
+            "deck_style_brief.md",
+            "# 统一视觉风格简报\n\n目标提示词语言：[待 Agent 浏览全部 source_pages/*.png 后判断：中文 / English]\n\n[待 Agent 浏览全部 source_pages/*.png 后填写]\n",
+        ),
+        ("visual_optimization_recommendations.md", "# 整套 PPT 视觉优化建议\n\n[待 Agent 浏览全部 source_pages/*.png 后填写]\n"),
+    ]:
+        f = out_dir / fname
+        if not f.exists() or refresh:
+            f.write_text(placeholder, encoding="utf-8")
 
     print(f"✅ 工作区就绪：{out_dir}")
-    print("   下一步：完善 deck_style_brief.md；Codex 完整模式下只传 deck_style_brief.md 正文生成 style_reference/style_reference.png，再继续逐页生图")
+    print("   下一步：浏览 source_pages 判断目标提示词语言，再依次 Read page-NNN.png 填写 page_prompts/page-NNN.md")
 
 
 # ──────────────────────────── 合批 ────────────────────────────
@@ -152,8 +141,13 @@ def finalize(out_dir: Path):
     placeholders = [
         "[填写",
         "[待 Agent",
-        "[逐一",
+        "[列举",
         "[写出",
+        "[1句话",
+        "[describe",
+        "[Write",
+        "[List",
+        "[One sentence",
     ]
     incomplete = []
     for f in files:
@@ -168,34 +162,24 @@ def finalize(out_dir: Path):
 
     first_content = files[0].read_text(encoding="utf-8")
     match = LANG_RE.search(first_content)
-    if match:
-        prompt_language = match.group(1).strip()
-    else:
-        # Fallback：基于全部页面正文中 CJK 与拉丁词的占比判定主语言
-        body_only = "\n".join(
-            raw.split("## 最终提示词", 1)[1] if "## 最终提示词" in raw else raw
-            for raw in (f.read_text(encoding="utf-8") for f in files)
-        )
-        cjk_count = len(CJK_RE.findall(body_only))
-        latin_count = len(LATIN_WORD_RE.findall(body_only))
-        prompt_language = LANG_EN if latin_count > cjk_count else LANG_CN
+    prompt_language = match.group(1).strip() if match else LANG_CN
 
     for batch_idx, start in enumerate(range(0, len(files), BATCH_SIZE), 1):
         group = files[start : start + BATCH_SIZE]
         if prompt_language == LANG_EN:
             lines = [
-                f"Generate {len(group)} images from the following {len(group)} prompts. "
-                f"Each prompt corresponds to one image. Generate each image separately and in order.\n"
+                f"Here are {len(group)} prompts. Use an available image generation model, such as GPT-Image, to generate {len(group)} images, "
+                f"one image per prompt. Generate each image separately and in order.\n"
             ]
         else:
             lines = [
-                f"生成 {len(group)} 张图片，下面有 {len(group)} 份提示词，"
+                f"以下是 {len(group)} 份提示词，请用可用的生图模型（如 GPT-Image）生成 {len(group)} 张图片，"
                 f"每份提示词对应一张图片。每张提示词彼此独立，请按顺序逐张生成。\n"
             ]
         for j, f in enumerate(group, 1):
             raw = f.read_text(encoding="utf-8")
             body = raw.split("## 最终提示词", 1)[1].strip() if "## 最终提示词" in raw else raw.strip()
-            body = PROMPT_LANGUAGE_LINE_RE.sub("", body).strip()
+            body = PROMPT_LANGUAGE_LINE_RE.sub("", body)
             body = POSTER_ACTION_RE.sub("", body).strip()
             if prompt_language == LANG_EN:
                 lines.append(f"## Image {j}\n\n{body}\n")

@@ -1,31 +1,32 @@
-# ppt-redesign v2.1
+# ppt-redesign
 
-一个面向 PPT 视觉重设计的 Codex Skill：目前只能安装在 Codex 上运行，只需要提供从任意幻灯片工具导出的 PDF，即可直接输出最终经过优化的 PDF 版的 PPT
+一个面向 PPT 视觉重设计的 AI Agent Skill：输入从 PowerPoint/PPT/PPTX 导出的 PDF，自动拆分页面、逐页视觉识别内容、生成中文视觉优化建议与逐页生图提示词，并默认使用当前 AI Agent 自带的生图能力逐页生成重设计图片，最终合成为一份新的 PDF。中文 PDF 输出中文提示词，英文 PDF 输出英文提示词，中英混排时按占比更多的语言输出；如果用户只需要提示词，也可以只交付合批后的提示词集合。
 
-由于 Codex 本身的上下文限制，本技能只能分为两个阶段来运行才能保证效果可用。用户可以在运行技能时的提示词中加入 **“自动进入第二阶段”**、**“自动继续”**、**“不用等我确认”**、**“第一阶段后直接继续”** 类似的话，就能一次完成整个生成任务。否则在第一阶段结束后整个任务会停止，AI 会请求用户同意，才能接着发起第二阶段的任务去完成最终的输出。
+An AI Agent skill for PPT visual redesign. It takes a PDF exported from PowerPoint/PPT/PPTX, splits it into pages, visually reads each page, generates deck-level visual suggestions and page-level image prompts, and by default uses the current AI Agent's built-in image generation capability to create redesigned images page by page before assembling them into a new PDF. Chinese PDFs produce Chinese prompts, English PDFs produce English prompts, and mixed-language PDFs use whichever language is more dominant. If the user only wants prompts, the skill can also return only the final batched prompt set.
 
 ## 安装说明
+把下面的话发送给你的 AI Agent 即可完成安装：请用 Git clone 的方式安装这个 skill，不要用默认下载复制方式，https://github.com/Xuebin-Yang/ppt-redesign
+> 因为 skill 还在迭代中，通过这个 Git clone 形式来安装后，每次运行 skill 时都会自动拉取 github 上的最新版本来运行。）
 
-把下面的话发送给 Codex 或支持 skill 安装的 AI Agent：
-
-```text
-请用 Git clone 的方式安装这个 skill，不要用默认下载复制方式：https://github.com/Xuebin-Yang/ppt-redesign
-```
-
-因为这个 skill 仍在迭代，在此安装模式下，每次运行前会检查 GitHub 上的最新版本。
+## Installation
+Send this message to your AI Agent to install the skill: "Please install this skill with Git clone instead of the default download-copy mode: https://github.com/Xuebin-Yang/ppt-redesign"
+> The skill is still evolving, so Git clone installation is recommended. In Git mode, the skill checks GitHub for the latest version before each run.
 
 ## 使用方式
+在 AI Agent 对话中上传 PDF 版的 PPT，然后使用这个 skill。若在 Codex 中使用，生图能力对应内置 `image_gen`；其他 AI Agent 使用时，请替换为该 Agent 自带的生图能力。
 
-在 Codex 对话中上传 PDF 版 PPT，然后说明使用 `ppt-redesign` 技能进行重设计。默认完整模式会产生两次用户可见节点：
-
-1. 第一阶段：输出风格参考图、风格参考图提示词和合批后的逐页提示词。
-2. 等待用户回复：`继续`
-3. 第二阶段：新会话逐页生成图片，并合成为最终 PDF。
-
-如果希望无人值守地衔接两阶段，可以在最开始直接说“自动进入第二阶段”或“第一阶段结束后自动继续”。这样第一阶段完成后会直接创建第二阶段新会话。若没有提前说明自动进入，也可以在第一阶段结束后回复 `继续` 来自动进入第二阶段。
-
-如果只需要提示词或不需要 PDF，请在任务中明确说明“只输出提示词”或“不输出 PDF”。Codex 中仍会生成一张风格参考图，但不会逐页生图，也不会合成 PDF。
+## Usage
+Upload the PDF version of your PPT in an AI Agent conversation and invoke this skill. In Codex, the image generation capability maps to the built-in `image_gen` tool; in other AI Agents, replace it with the agent's own image generation capability.
 
 
+## 注意事项
+- Skill 运行耗费的额度较大，如果只是简单初步测试，可以用只有几页的 PPT 来测试。
+- 支持中文、英文和中英混排 PDF；中英混排时会做简单语言占比判断。
+- 目前这个 Skill 只支持 PDF 输入，不支持其他格式输入。将来会支持其他格式输入。
+- 默认完整模式需要当前 AI Agent 具备生图能力；只输出提示词模式不需要生图能力。
 
-
+## Notes
+- Running the skill can consume a noticeable amount of Codex usage, so for quick testing it is better to start with a small PPT that has only a few pages.
+- The skill supports Chinese, English, and mixed Chinese-English PDFs. For mixed decks, it uses a simple dominant-language judgment.
+- The skill currently supports PDF input only. Other input formats may be supported later.
+- The default full workflow requires the current AI Agent to have image generation capability. Prompt-only mode does not require image generation.
